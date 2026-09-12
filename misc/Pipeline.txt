@@ -1,0 +1,71 @@
+pipeline:
+  name: Contact Registration
+  identifier: Contact_Registration
+  projectIdentifier: Contact_Registration
+  orgIdentifier: default
+  description: Send contact details to existing FastAPI
+  tags:
+    ai_generated: ""
+  variables:
+    - name: name
+      type: String
+      description: Contact name
+      required: true
+      value: <+input>
+    - name: phone
+      type: String
+      description: Contact phone number
+      required: true
+      value: <+input>
+  stages:
+    - stage:
+        name: Register Contact
+        identifier: Register_Contact
+        description: Call existing FastAPI contact API
+        type: CI
+        spec:
+          cloneCodebase: false
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: Kubernetes_Cluster
+              namespace: default
+              automountServiceAccountToken: true
+              nodeSelector: {}
+              os: Linux
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Call Contact API
+                  identifier: Call_Contact_API
+                  spec:
+                    connectorRef: Docker_Hub_Public
+                    image: curlimages/curl:latest
+                    shell: Sh
+                    command: |
+                      echo "================================="
+                      echo "Contact Registration"
+                      echo "================================="
+
+                      echo "Name: <+pipeline.variables.name>"
+                      echo "Phone: <+pipeline.variables.phone>"
+
+                      echo "Calling FastAPI..."
+
+                      curl --fail-with-body -X POST \
+                        "http://135.235.185.200/contacts" \
+                        -H "Content-Type: application/json" \
+                        -d '{
+                          "name": "<+pipeline.variables.name>",
+                          "phone": "<+pipeline.variables.phone>"
+                        }'
+
+                      echo ""
+                      echo "Contact API call completed successfully."
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: MarkAsFailure
